@@ -19,6 +19,17 @@
     <link rel="stylesheet" href="{{ asset('asset/css/main copy.css') }}">
     <link rel="stylesheet" href="{{ asset('asset/css/util copy.css') }}">
     <link href="{{ asset('asset/css/furniCSS.css') }}" rel="stylesheet">
+    
+    <!-- Global Font: Inter (Google Fonts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body, h1, h2, h3, h4, h5, h6, p, a, span, div, input, button, select, textarea {
+            font-family: 'Inter', sans-serif !important;
+        }
+    </style>
+
     <title>{{ $title ?? 'UMKM INDONESIA' }}</title>
 </head>
 

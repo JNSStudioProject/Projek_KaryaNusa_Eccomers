@@ -27,17 +27,15 @@
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="form-holder" style="padding-bottom: 0px">
-                        <form action="{{ route('verification.resend') }}" method="POST"
+                        <form action="{{ route('verification.send') }}" method="POST"
                             style="padding-bottom: 0px;height: 200px">
+                            @csrf
                             <div class="container" style="margin-top: 30px">
-
                                 <h3>{{ __('Verify Your Email Address') }}</h3>
-
-                                <p>{{ __('Before proceeding,e please check your email for a verification link.') }}</p>
-                                <p>{{ __('If you did not receive the email') }},
-
-                                    @csrf
-                                    <button type="submit" class="btn btn-link">Kirim ulang link verifikasi</button>
+                                <p>{{ __('Before proceeding, please check your email for a verification link.') }}</p>
+                                <p>{{ __('If you did not receive the email,') }}</p>
+                                <button type="submit" class="btn btn-link">Kirim ulang link verifikasi</button>
+                            </div>
                         </form>
                         @if (session('status'))
                             <div class="alert alert-success" role="alert" style="max-width: 30%;height: 40px">

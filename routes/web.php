@@ -9,9 +9,6 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\PemesananController;
 use App\Http\Controllers\EmailCons;
 use App\Http\Controllers\Auth\EmailVerificationController;
-use Laravel\Fortify\Http\Controllers\RegisteredUserController;
-use Laravel\Fortify\Http\Controllers\AuthenticatedSessionController;
-
 Route::get('/unauthorized', function () {
     return 'You are not authorized to access this page.';
 });
@@ -21,42 +18,19 @@ Route::middleware(['auth', 'verified'])->get('/', function () {
     return view(view: 'index');
 })->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    // Menampilkan tampilan verifikasi email
-    Route::get('/email/verify', [EmailVerificationController::class, 'show'])
-        ->name('verification.notice');
 
-    // Verifikasi email
-    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
-        ->middleware('signed')
-        ->name('verification.verify');
-
-    // Kirim ulang email verifikasi
-    Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
-        ->name('verification.resend');
+Route::middleware(['auth'])->group(function () {
+    Route::post('/save-address', [PemesananController::class, 'saveAddress'])->name('save-address');
 });
 
-
-// Rute login
-Route::get('/login', [AuthenticatedSessionController::class, 'create'])
-    ->middleware('guest')
-    ->name('login');
-
-Route::get('/register', [AuthenticatedSessionController::class, 'create'])
-    ->name('register.show');
-
-// Rute untuk post data login
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('guest')
-    ->name('login.store');
-
-Route::get('/register', [RegisteredUserController::class, 'create'])
-    ->name('register.create');
 
 Route::get('/sukses', [PaymentController::class, 'getThanku'])->name('sukses');
 Route::get('/aboutUs', [PemesananController::class, 'AboutUs'])->name('AboutUsCustomer');
 Route::get('/ViewCO', [PemesananController::class, 'ViewCheckout'])->name('ViewCheckout');
 Route::get('/kota/{provinsi_id}', [PemesananController::class, 'kota'])->name('kota');
+Route::get('/checkout', function() {
+    return redirect()->route('cartCustomer');
+})->name('checkout.get');
 Route::post('/checkout', [PemesananController::class, 'Co'])->name('checkout');
 Route::post('/hitungOngkir', [PemesananController::class, 'hitungOngkir'])->name('hitungOngkir');
 Route::get('/ContactUs', [PemesananController::class, 'Contact'])->name('ContactCustomer');

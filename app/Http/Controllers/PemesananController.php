@@ -26,9 +26,65 @@ class PemesananController extends Controller
     {
         return view('aboutUs');
     }
-    public function ViewCheckout()
+    public function ViewCheckout(Request $request)
     {
-        return view('checkOut');
+        $selectedItems = $request->query('selectedID');
+        if (!$selectedItems) {
+            return redirect()->route('cartCustomer')->with('error', 'Silakan pilih item dari keranjang.');
+        }
+
+        $selectedItemsArray = explode(',', $selectedItems);
+        $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk')->get();
+        
+        $total_berat = 0;
+        $subTotal = 0;
+        foreach ($cart as $item) {
+            $berat_produk = $item->produk->berat ?? 500;
+            $total_berat += ($berat_produk * $item->quantity);
+            $subTotal += ($item->produk->harga * $item->quantity);
+        }
+
+        $provinsi = [];
+        if (!Auth::user()->kota_id) {
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 2,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
+            ]);
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            curl_close($curl);
+            if (!$err) {
+                $provinsi = json_decode($response, true);
+            }
+            
+            // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
+            if (empty($provinsi) || isset($provinsi['rajaongkir']['status']['code']) && $provinsi['rajaongkir']['status']['code'] != 200) {
+                $provinsi = [
+                    'rajaongkir' => [
+                        'status' => ['code' => 200, 'description' => 'OK'],
+                        'results' => [
+                            ['province_id' => '1', 'province' => 'Bali (Data Dummy)'],
+                            ['province_id' => '6', 'province' => 'DKI Jakarta (Data Dummy)'],
+                            ['province_id' => '9', 'province' => 'Jawa Barat (Data Dummy)'],
+                            ['province_id' => '11', 'province' => 'Jawa Timur (Data Dummy)']
+                        ]
+                    ]
+                ];
+            }
+        } // Penutup untuk if (!Auth::user()->kota_id) {
+            
+        // Konversi array ke JSON string agar formatnya sama dengan fungsi Co() saat mensubmit payment
+        $selectedItems = json_encode($selectedItemsArray);
+        
+        return view('checkOut', compact('cart', 'total_berat', 'subTotal', 'selectedItems', 'provinsi'));
     }
     public function bayar(Request $request) {}
 
@@ -42,9 +98,10 @@ class PemesananController extends Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
+            CURLOPT_TIMEOUT => 2,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
         ]);
 
@@ -52,26 +109,67 @@ class PemesananController extends Controller
         $err = curl_error($curl);
         curl_close($curl);
 
-        if ($err) {
-            echo 'cURL Error #:' . $err;
-        } else {
+        $kota = [];
+        if (!$err) {
             $kota = json_decode($response, true);
-            if ($kota['rajaongkir']['status']['code'] == ' 200') {
-                echo "<option value='' >Pilih Kota</option>";
-
-                foreach ($kota['rajaongkir']['results'] as $kt) {
-                    echo "<option value='$kt[city_id]' >$kt[city_name]</option>";
-                }
-            }
         }
+
+        // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
+        if (empty($kota) || isset($kota['rajaongkir']['status']['code']) && $kota['rajaongkir']['status']['code'] != 200) {
+            $kota = [
+                'rajaongkir' => [
+                    'status' => ['code' => 200, 'description' => 'OK'],
+                    'results' => [
+                        ['city_id' => '114', 'city_name' => 'Denpasar (Dummy)'],
+                        ['city_id' => '152', 'city_name' => 'Jakarta Pusat (Dummy)'],
+                        ['city_id' => '22', 'city_name' => 'Bandung (Dummy)'],
+                        ['city_id' => '444', 'city_name' => 'Surabaya (Dummy)']
+                    ]
+                ]
+            ];
+        }
+
+        if (isset($kota['rajaongkir']['status']['code']) && $kota['rajaongkir']['status']['code'] == 200) {
+            $options = "<option value=''>Pilih Kota</option>";
+            foreach ($kota['rajaongkir']['results'] as $kt) {
+                $options .= "<option value='" . $kt['city_id'] . "'>" . $kt['city_name'] . "</option>";
+            }
+            return $options;
+        } else {
+            return "<option value=''>Gagal memuat kota dari API</option>";
+        }
+    }
+
+    public function saveAddress(Request $request)
+    {
+        $request->validate([
+            'provinsi_id' => 'required',
+            'kota_id' => 'required',
+            'alamat_lengkap' => 'required',
+            'kode_pos' => 'required'
+        ]);
+
+        $user = Auth::user();
+        $user->update([
+            'provinsi_id' => $request->provinsi_id,
+            'kota_id' => $request->kota_id,
+            'alamat_lengkap' => $request->alamat_lengkap,
+            'kode_pos' => $request->kode_pos,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Alamat berhasil disimpan!']);
     }
 
     public function hitungOngkir(Request $request)
     {
-        // Memastikan input 'kota' dan 'berat' tersedia
         if ($request->isMethod('post')) {
+            $user = Auth::user();
+            if (!$user->kota_id) {
+                return response()->json(['success' => false, 'message' => 'Lengkapi alamat pengiriman terlebih dahulu.']);
+            }
+
             $postFields = "origin=457" .
-                "&destination=" . $request->input('kota') .
+                "&destination=" . $user->kota_id .
                 "&weight=" . $request->input('berat') .
                 "&courier=" . $request->input('ekspidisi');
 
@@ -82,10 +180,11 @@ class PemesananController extends Controller
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => "",
                 CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30,
+                CURLOPT_TIMEOUT => 2,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => "POST",
                 CURLOPT_POSTFIELDS => $postFields,
+                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_HTTPHEADER => array(
                     "content-type: application/x-www-form-urlencoded",
                     "key: a83772758c55b5e7ea48b40d11380c36"
@@ -97,13 +196,54 @@ class PemesananController extends Controller
 
             curl_close($curl);
 
-            if ($err) {
-                // Menampilkan error jika ada
-                echo "cURL Error #:" . $err;
-            } else {
-                $data['ongkir'] = $response;
-                return view('checkOut', $data);
+            $ongkirData = [];
+            if (!$err) {
+                $ongkirData = json_decode($response, true);
             }
+
+            // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
+            if (empty($ongkirData) || isset($ongkirData['rajaongkir']['status']['code']) && $ongkirData['rajaongkir']['status']['code'] != 200) {
+                $ongkirData = [
+                    'rajaongkir' => [
+                        'status' => ['code' => 200, 'description' => 'OK'],
+                        'results' => [
+                            [
+                                'code' => $request->ekspidisi,
+                                'name' => strtoupper($request->ekspidisi) . ' (Dummy)',
+                                'costs' => [
+                                    [
+                                        'service' => 'REG',
+                                        'description' => 'Layanan Reguler (Simulasi)',
+                                        'cost' => [
+                                            [
+                                                'value' => 15000,
+                                                'etd' => '2-3',
+                                                'note' => ''
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        'service' => 'YES',
+                                        'description' => 'Yakin Esok Sampai (Simulasi)',
+                                        'cost' => [
+                                            [
+                                                'value' => 25000,
+                                                'etd' => '1-1',
+                                                'note' => ''
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $ongkirData
+            ]);
         }
     }
 
@@ -112,13 +252,61 @@ class PemesananController extends Controller
     {
         // Mengambil data selected_items dari request
         $selectedItems = request()->input('selected_items');
+        if (!$selectedItems) {
+            return redirect()->route('cartCustomer')->with('error', 'Silakan pilih item dari keranjang.');
+        }
         $selectedItemsArray = json_decode($selectedItems, true);
         // Memastikan data adalah array
         if (is_array($selectedItemsArray)) {
-            // Ambil data cart berdasarkan id yang terpilih
-            $cart = Cart::whereIn('id', $selectedItemsArray)->get();
-            // Kirim data ke view
-            return view('bayar', compact('cart'));
+            $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk')->get();
+            
+            $total_berat = 0;
+            $subTotal = 0;
+            foreach ($cart as $item) {
+                $berat_produk = $item->produk->berat ?? 500;
+                $total_berat += ($berat_produk * $item->quantity);
+                $subTotal += ($item->produk->harga * $item->quantity);
+            }
+
+            // Fetch provinces if user doesn't have kota_id
+            $provinsi = [];
+            if (!Auth::user()->kota_id) {
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => '',
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 2,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => 'GET',
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
+                ]);
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+                curl_close($curl);
+                if (!$err) {
+                    $provinsi = json_decode($response, true);
+                }
+                
+                // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
+                if (empty($provinsi) || isset($provinsi['rajaongkir']['status']['code']) && $provinsi['rajaongkir']['status']['code'] != 200) {
+                    $provinsi = [
+                        'rajaongkir' => [
+                            'status' => ['code' => 200, 'description' => 'OK'],
+                            'results' => [
+                                ['province_id' => '1', 'province' => 'Bali (Data Dummy)'],
+                                ['province_id' => '6', 'province' => 'DKI Jakarta (Data Dummy)'],
+                                ['province_id' => '9', 'province' => 'Jawa Barat (Data Dummy)'],
+                                ['province_id' => '11', 'province' => 'Jawa Timur (Data Dummy)']
+                            ]
+                        ]
+                    ];
+                }
+            }
+            
+            return view('checkOut', compact('cart', 'total_berat', 'subTotal', 'selectedItems', 'provinsi'));
         } else {
             // Jika data tidak valid, memberikan pesan error atau mengarahkan kembali
             return redirect()->back()->with('error', 'Item yang dipilih tidak valid.');
@@ -144,44 +332,56 @@ class PemesananController extends Controller
 
     public function add_chart(Request $request)
     {
-        // Cek apakah produk sudah ada di keranjang
-
-        $product_Chart = [
-            'id' => $request->id, // Validasi bahwa id produk ada di tabel produk
-            'quantity' => $request->quantity, // Validasi jumlah produk (min 1)
-        ];
-        $cartItem = Cart::where('product_id', $product_Chart['id'])
-            ->first();
-        $userId = Auth::id();
-        // dd($request->id);
-        if ($cartItem) {
-            // Jika produk sudah ada, update jumlahnya
-            $cartItem->quantity = $request->quantity; // Menambah quantity produk
-            $cartItem->$userId;
-            $cartItem->product_id = $request->id;
-            $cartItem->save();
-            session()->flash('success', 'Data berhasil Diupdate di keranjang.');
-        } else {
-            // Jika produk belum ada di keranjang, simpan item baru
-            Cart::create([
-                'user_id' => $userId,
-                'product_id' => $product_Chart['id'],
-                'quantity' => $product_Chart['quantity'],
-            ]);
-            session()->flash('success', 'Data berhasil dimasukkan ke Keranjang.');
+        if (!Auth::check()) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success'  => false,
+                    'message'  => 'Silakan login terlebih dahulu!',
+                    'redirect' => route('login')
+                ]);
+            }
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
         }
-        return redirect()->route('detailProduct', $request->id);
-        // //     // Ambil user yang sedang login
-        // $user = auth()->user();
 
+        $userId    = Auth::id();
+        $productId = $request->input('id');
+        $quantity  = (int) $request->input('quantity', 1);
 
+        // Cek apakah produk sudah ada di keranjang milik user ini
+        $cartItem = Cart::where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->first();
 
+        if ($cartItem) {
+            // Tambahkan quantity jika produk sudah ada
+            $cartItem->quantity += $quantity;
+            $cartItem->save();
+            $message = 'Jumlah produk di keranjang berhasil diperbarui.';
+        } else {
+            // Buat item baru di keranjang
+            Cart::create([
+                'user_id'    => $userId,
+                'product_id' => $productId,
+                'quantity'   => $quantity,
+            ]);
+            $message = 'Produk berhasil ditambahkan ke keranjang!';
+        }
 
+        // Hitung total item keranjang untuk badge navbar
+        $cartCount = Cart::where('user_id', $userId)->sum('quantity');
 
-        //     // Hitung jumlah item di keranjang
-        //     $cartCount = Cart::where('user_id', $user->id)->sum('quantity');
+        // Jika AJAX → kembalikan JSON
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success'    => true,
+                'message'    => $message,
+                'cart_count' => $cartCount,
+            ]);
+        }
 
-
+        // Form submit biasa → redirect ke halaman shop
+        session()->flash('success', $message);
+        return redirect()->route('Produk.index');
     }
 
     public function detail($id)

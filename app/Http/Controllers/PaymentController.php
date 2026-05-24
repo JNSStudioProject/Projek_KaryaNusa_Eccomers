@@ -82,38 +82,49 @@ class PaymentController extends Controller
     {
         // Ambil ongkir dari request
         $ongkir = $request->input('ongkir');
-
-        // Cari semua selectedID yang terkait dengan user yang sedang login
+        $selectedItemsArray = $request->input('selected_items');
+        
         $userId = Auth::id();
-        $selectedItems = SelectedItem::where('user_id', $userId)->get();
 
-        // Update ongkir untuk setiap order yang ditemukan
-        foreach ($selectedItems as $item) {
-            // Asumsi bahwa 'ongkir' adalah atribut di SelectedItem
-            $item->ongkir = $ongkir;
-            $item->save();
+        if (!$selectedItemsArray || !is_array($selectedItemsArray)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pesanan kosong. Silakan kembali ke Keranjang dan ulangi Checkout.'
+            ], 400);
         }
 
-        // Hitung total TotalHarga, Ongkir, dan Quantity untuk user tersebut
-        $totalHarga = $selectedItems->sum('TotalHarga');
-        $ongkir = $selectedItems->sum('Ongkir');
-        $total_item_pesanan = $selectedItems->sum('quantity');
+        $cartItems = Cart::whereIn('id', $selectedItemsArray)->with('produk')->get();
+
+        if ($cartItems->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Pesanan kosong. Silakan kembali ke Keranjang dan ulangi Checkout.'
+            ], 400);
+        }
+
+        $totalHarga = 0;
+        $total_item_pesanan = 0;
+        foreach ($cartItems as $item) {
+            $totalHarga += ($item->produk->harga * $item->quantity);
+            $total_item_pesanan += $item->quantity;
+        }
 
         // Hitung total keseluruhan
-        $total = $totalHarga +  $item->ongkir;
+        $total = $totalHarga + $ongkir;
 
         // Buat pesanan baru dan simpan di tabel orders
         $order = Pemesanan::updateOrCreate(
             ['user_id' => $userId, 'status_pesan' => 'pending'], // Kondisi untuk mencari data yang sudah ada
             [
-                'total_biaya' => $totalHarga + $item->ongkir,
+                'total_biaya' => $total,
                 'shipping_address' => 'ALAAMAT',
                 'total_item_pesanan' => $total_item_pesanan,
             ]
         );
 
         // Hubungkan produk yang dipilih ke pesanan melalui tabel pivot order_product
-        foreach ($selectedItems as $item) {
+        $order->produk()->detach(); // Bersihkan pivot lama
+        foreach ($cartItems as $item) {
             $order->produk()->attach($item->product_id);  // Asumsi 'product_id' adalah kolom yang menyimpan id produk
         }
 
@@ -177,6 +188,9 @@ class PaymentController extends Controller
         $orderIds = [];
         $userId = Auth::id();
         if ($cartData) {
+            // Bersihkan data pesanan yang menggantung dari checkout sebelumnya
+            SelectedItem::where('user_id', $userId)->delete();
+
             // Proses setiap item dalam keranjang
             foreach ($cartData as $item) {
                 // Debugging untuk melihat item yang diproses

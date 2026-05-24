@@ -28,6 +28,7 @@ class CreateNewUser implements CreatesNewUsers
                 'max:255',
                 Rule::unique(User::class),
             ],
+            'no_hp' => ['required', 'string', 'max:15'],
             'password' => $this->passwordRules(),
         ])->validate();
 

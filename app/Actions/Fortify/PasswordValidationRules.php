@@ -13,6 +13,6 @@ trait PasswordValidationRules
      */
     protected function passwordRules(): array
     {
-        return ['required', 'string', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/']; // Password dengan minimal 8 karakter, huruf kecil, huruf besar, dan angka
+        return ['required', 'string', 'min:8', 'confirmed', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/']; // Password dengan minimal 8 karakter, huruf kecil, huruf besar, dan angka
     }
 }
