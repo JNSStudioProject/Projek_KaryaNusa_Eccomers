@@ -58,6 +58,24 @@ Route::get('/run-migrations', function () {
     return 'Migrations completed successfully on Vercel: ' . \Artisan::output();
 });
 
+Route::get('/debug-images', function () {
+    $products = \App\Models\Produk::with('images')->get();
+    $output = [];
+    foreach ($products as $p) {
+        $imgs = $p->images->map(fn($i) => [
+            'raw' => $i->getRawOriginal('image_path'),
+            'accessor' => $i->image_path,
+        ]);
+        $output[] = [
+            'id' => $p->id,
+            'nama' => $p->nama,
+            'image_count' => $p->images->count(),
+            'images' => $imgs,
+        ];
+    }
+    return response()->json($output, 200, [], JSON_PRETTY_PRINT);
+});
+
 Route::get('/create-admin', function () {
     $user = \App\Models\User::updateOrCreate(
         ['email' => 'jsilitonga42@gmail.com'],
