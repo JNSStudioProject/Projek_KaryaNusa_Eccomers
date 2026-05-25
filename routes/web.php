@@ -14,7 +14,7 @@ Route::get('/unauthorized', function () {
 });
 
 
-Route::middleware(['auth', 'verified'])->get('/', function () {
+Route::middleware(['auth'])->get('/', function () {
     return view(view: 'index');
 })->name('dashboard');
 
