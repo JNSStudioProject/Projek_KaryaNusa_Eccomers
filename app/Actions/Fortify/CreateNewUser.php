@@ -36,7 +36,7 @@ class CreateNewUser implements CreatesNewUsers
             'name'              => $input['name'],
             'email'             => $input['email'],
             'no_hp'             => $input['no_hp'],
-            'password'          => $input['password'],
+            'password'          => Hash::make($input['password']),
             'email_verified_at' => now(), // Auto-verify agar tidak redirect ke /email/verify
         ]);
     }
