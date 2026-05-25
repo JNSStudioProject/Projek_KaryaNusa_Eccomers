@@ -12,26 +12,6 @@
     ],
     "routes": [
         {
-            "src": "/build/(.*)",
-            "dest": "/public/build/$1"
-        },
-        {
-            "src": "/asset/(.*)",
-            "dest": "/public/asset/$1"
-        },
-        {
-            "src": "/furni-1.0.0/(.*)",
-            "dest": "/public/furni-1.0.0/$1"
-        },
-        {
-            "src": "/image/(.*)",
-            "dest": "/public/image/$1"
-        },
-        {
-            "src": "/storage/(.*)",
-            "dest": "/public/storage/$1"
-        },
-        {
             "src": "/(.*)",
             "dest": "/api/index.php"
         }
