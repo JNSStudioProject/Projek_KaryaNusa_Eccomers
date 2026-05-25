@@ -64,10 +64,16 @@ Route::get('/create-admin', function () {
         [
             'name' => 'Jessica Silitonga',
             'no_hp' => '081234567890',
-            'password' => \Hash::make('password123'),
+            'password' => 'password123', // Let the model cast hash it
             'email_verified_at' => now(),
             'Role' => 'admin',
         ]
     );
-    return 'Akun berhasil diperbarui! Email: jsilitonga42@gmail.com | Password: password123';
+    
+    $attempt = \Illuminate\Support\Facades\Auth::attempt([
+        'email' => 'jsilitonga42@gmail.com',
+        'password' => 'password123'
+    ]);
+    
+    return 'Akun berhasil diperbarui! Email: jsilitonga42@gmail.com | Password: password123 | Test Login: ' . ($attempt ? 'BERHASIL' : 'GAGAL');
 });
