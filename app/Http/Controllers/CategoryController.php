@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
@@ -53,6 +54,9 @@ class CategoryController extends Controller
 
         // Menyimpan data pasien ke database
         $kategori->save();
+        
+        Cache::forget('categories_all');
+
         if ($request->wantsJson()) {
             return response()->json($kategori);
         }

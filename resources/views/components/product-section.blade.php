@@ -14,7 +14,10 @@
 
             @php
                 use App\Models\Produk;
-                $produk = Produk::with('images')->latest()->paginate(3);
+                use Illuminate\Support\Facades\Cache;
+                $produk = Cache::remember('home_latest_products', 300, function() {
+                    return Produk::with('images')->latest()->take(3)->get();
+                });
             @endphp
 
             @foreach ($produk as $carts)

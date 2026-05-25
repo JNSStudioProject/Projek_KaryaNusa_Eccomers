@@ -12,7 +12,7 @@ class AdminController extends Controller
      */
     public function index()
     {
-        $data['produk'] = Produk::latest()->paginate(10);
+        $data['produk'] = Produk::with(['kategori', 'images'])->latest()->paginate(10);
         return view('Admin.AdminIndex', $data);
     }
 

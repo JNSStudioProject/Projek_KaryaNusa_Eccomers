@@ -45,14 +45,13 @@ class PaymentController extends Controller
     public function getThanku()
     {
         $userID = Auth::id();
-        $pemesanan_id = Pemesanan::where('user_id',   $userID)->latest()->first();
+        $order = Pemesanan::where('user_id', $userID)->latest('id')->first();
 
-        $pemesanan_id->status_pesan = 'sukses';
-        $pemesanan_id->save();
+        if ($order) {
+            $order->status_pesan = 'sukses';
+            $order->save();
+        }
 
-        $order = Pemesanan::where('user_id', $userID) // Filter berdasarkan user_id
-            ->latest('id') // Urutkan berdasarkan kolom 'id' (bisa 'created_at' jika sesuai kebutuhan)
-            ->first(); // Ambil data pertama (terbaru)
         $data = [
             'text' => 'Terima Kasih Sudah berbelanja!',
             'order_id' => $order->id,
@@ -63,7 +62,6 @@ class PaymentController extends Controller
 
         $email_target = Auth::user()->email;
         Mail::to($email_target)->send(new EmailAfterCO($data));
-        $order = Pemesanan::find($pemesanan_id->id);
 
         // Cek apakah pesanan sudah dalam status 'completed' atau 'confirmed'
         if ($order && $order->status_pesan === 'sukses') {

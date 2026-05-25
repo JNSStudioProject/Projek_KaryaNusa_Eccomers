@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produk;
 use App\Models\Category;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -18,14 +19,14 @@ class ProdukController extends Controller
         if (request()->wantsJson()) {
             return response()->json('hallo F');
         }
-        $produk = Produk::with('images')->get(); // Mengambil semua produk dan gambar terkait
+        $produk = Produk::with(['images', 'kategori'])->get(); // Mengambil semua produk dan gambar terkait
         return view('shop', compact('produk'));
     }
     public function loadMore(Request $request)
     {
         if ($request->ajax()) {
             // Mengambil produk berdasarkan offset dan limit
-            $produk = Produk::skip($request->skip)->take(8)->get(); // Sesuaikan dengan jumlah produk yang ingin dimuat
+            $produk = Produk::with('images')->skip($request->skip)->take(8)->get(); // Sesuaikan dengan jumlah produk yang ingin dimuat
 
             return response()->json(view('partialProduct', compact('produk'))->render());
         }
@@ -36,7 +37,9 @@ class ProdukController extends Controller
      */
     public function create()
     {
-        $data['categories'] = Category::all();
+        $data['categories'] = Cache::remember('categories_all', 86400, function () {
+            return Category::all();
+        });
         return view('Admin.input_produk', $data);
     }
 
@@ -67,6 +70,7 @@ class ProdukController extends Controller
 
         // Menyimpan data produk ke database
         if ($produk->save()) {
+            Cache::forget('home_latest_products');
             session()->flash('success', 'Data berhasil disimpan.');
         } else {
             session()->flash('error', 'Data tidak bisa disimpan.');
@@ -103,8 +107,10 @@ class ProdukController extends Controller
      */
     public function edit(String $id)
     {
-        $data['categories'] = Category::all();
-        $data['produk'] = Produk::where('id', $id)->first();
+        $data['categories'] = Cache::remember('categories_all', 86400, function () {
+            return Category::all();
+        });
+        $data['produk'] = Produk::with(['kategori', 'images'])->where('id', $id)->first();
         if (!$data['produk']) {
             abort(404, 'Produk tidak ditemukan');
         }
@@ -143,6 +149,8 @@ class ProdukController extends Controller
             'harga' => $request->harga,
             'diskon' => $request->diskon,
         ]);
+        
+        Cache::forget('home_latest_products');
 
         // Menyimpan gambar jika ada
         if ($request->hasFile('images')) {
@@ -188,6 +196,7 @@ class ProdukController extends Controller
         // Jika produk terkait dengan kategori atau gambar, maka akan terhapus secara otomatis jika menggunakan cascade delete
         try {
             $produk1->delete();  // Produk dan data terkait (kategori, gambar) akan terhapus jika cascade delete sudah diatur
+            Cache::forget('home_latest_products');
             session()->flash('success', 'Produk dan data terkait berhasil dihapus.');
         } catch (\Exception $e) {
             // Menangani jika terjadi error dalam penghapusan

@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Cache;
 
 
 class PemesananController extends Controller
@@ -18,7 +19,7 @@ class PemesananController extends Controller
      */
     public function index()
     {
-        $data['pemesanan'] = Pemesanan::latest()->paginate(10);
+        $data['pemesanan'] = Pemesanan::with('user')->latest()->paginate(10);
         return view('Admin.pemesanan_index', $data);
     }
 
@@ -28,7 +29,7 @@ class PemesananController extends Controller
     }
     public function pesananSaya()
     {
-        $pemesanan = Pemesanan::where('user_id', Auth::id())->latest()->get();
+        $pemesanan = Pemesanan::with('products')->where('user_id', Auth::id())->latest()->get();
         return view('pesananSaya', compact('pemesanan'));
     }
 
@@ -40,7 +41,7 @@ class PemesananController extends Controller
         }
 
         $selectedItemsArray = explode(',', $selectedItems);
-        $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk')->get();
+        $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk.images')->get();
         
         $total_berat = 0;
         $subTotal = 0;
@@ -52,24 +53,27 @@ class PemesananController extends Controller
 
         $provinsi = [];
         if (!Auth::user()->kota_id) {
-            $curl = curl_init();
-            curl_setopt_array($curl, [
-                CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 2,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'GET',
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
-            ]);
-            $response = curl_exec($curl);
-            $err = curl_error($curl);
-            curl_close($curl);
-            if (!$err) {
-                $provinsi = json_decode($response, true);
-            }
+            $provinsi = Cache::remember('rajaongkir_provinsi', 86400, function () {
+                $curl = curl_init();
+                curl_setopt_array($curl, [
+                    CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => '',
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 5,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => 'GET',
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
+                ]);
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+                curl_close($curl);
+                if (!$err) {
+                    return json_decode($response, true);
+                }
+                return [];
+            });
             
             // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
             if (empty($provinsi) || isset($provinsi['rajaongkir']['status']['code']) && $provinsi['rajaongkir']['status']['code'] != 200) {
@@ -96,29 +100,31 @@ class PemesananController extends Controller
 
     public function kota($provinsi_id)
     {
-        $curl = curl_init();
-
-        // API untuk mengambil kota berdasarkan provinsi
-        curl_setopt_array($curl, [
-            CURLOPT_URL => 'https://api.rajaongkir.com/starter/city?&province=' . $provinsi_id,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 2,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
-        ]);
-
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-        curl_close($curl);
-
-        $kota = [];
-        if (!$err) {
-            $kota = json_decode($response, true);
-        }
+        $kota = Cache::remember("rajaongkir_city_{$provinsi_id}", 86400, function () use ($provinsi_id) {
+            $curl = curl_init();
+    
+            // API untuk mengambil kota berdasarkan provinsi
+            curl_setopt_array($curl, [
+                CURLOPT_URL => 'https://api.rajaongkir.com/starter/city?&province=' . $provinsi_id,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
+            ]);
+    
+            $response = curl_exec($curl);
+            $err = curl_error($curl);
+            curl_close($curl);
+    
+            if (!$err) {
+                return json_decode($response, true);
+            }
+            return [];
+        });
 
         // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
         if (empty($kota) || isset($kota['rajaongkir']['status']['code']) && $kota['rajaongkir']['status']['code'] != 200) {
@@ -264,7 +270,7 @@ class PemesananController extends Controller
         $selectedItemsArray = json_decode($selectedItems, true);
         // Memastikan data adalah array
         if (is_array($selectedItemsArray)) {
-            $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk')->get();
+            $cart = Cart::whereIn('id', $selectedItemsArray)->with('produk.images')->get();
             
             $total_berat = 0;
             $subTotal = 0;
@@ -277,24 +283,27 @@ class PemesananController extends Controller
             // Fetch provinces if user doesn't have kota_id
             $provinsi = [];
             if (!Auth::user()->kota_id) {
-                $curl = curl_init();
-                curl_setopt_array($curl, [
-                    CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 2,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'GET',
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
-                ]);
-                $response = curl_exec($curl);
-                $err = curl_error($curl);
-                curl_close($curl);
-                if (!$err) {
-                    $provinsi = json_decode($response, true);
-                }
+                $provinsi = Cache::remember('rajaongkir_provinsi', 86400, function () {
+                    $curl = curl_init();
+                    curl_setopt_array($curl, [
+                        CURLOPT_URL => 'https://api.rajaongkir.com/starter/province',
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_ENCODING => '',
+                        CURLOPT_MAXREDIRS => 10,
+                        CURLOPT_TIMEOUT => 5,
+                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_CUSTOMREQUEST => 'GET',
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_HTTPHEADER => ['key:a83772758c55b5e7ea48b40d11380c36'],
+                    ]);
+                    $response = curl_exec($curl);
+                    $err = curl_error($curl);
+                    curl_close($curl);
+                    if (!$err) {
+                        return json_decode($response, true);
+                    }
+                    return [];
+                });
                 
                 // MOCK DATA FALLBACK JIKA RAJAONGKIR DIBLOKIR INTERNET
                 if (empty($provinsi) || isset($provinsi['rajaongkir']['status']['code']) && $provinsi['rajaongkir']['status']['code'] != 200) {
@@ -392,7 +401,7 @@ class PemesananController extends Controller
 
     public function detail($id)
     {
-        $produk = Produk::where('id', $id)->first();
+        $produk = Produk::with(['images', 'kategori'])->where('id', $id)->first();
         return view('product_detail', compact('produk'));
     }
     public function CartUpdate(Request $request)
@@ -410,9 +419,8 @@ class PemesananController extends Controller
     }
     public function  Contact()
     {
-        $id = Auth::id();
-        $user = User::where('id', $id)->get();
-        return view('contact', $user);
+        $user = Auth::user();
+        return view('contact', compact('user'));
     }
     public function  cart()
     {
