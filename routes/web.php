@@ -52,3 +52,8 @@ Route::resource('/Produk', ProdukController::class);
 Route::resource('/Kategori', CategoryController::class);
 Route::resource('/pemesanan', PemesananController::class);
 // Route::get('/gerr', [EmailCons::class, 'gerr'])->name('gerr');
+
+Route::get('/run-migrations', function () {
+    \Artisan::call('migrate:fresh --seed --force');
+    return 'Migrations completed successfully on Vercel: ' . \Artisan::output();
+});
