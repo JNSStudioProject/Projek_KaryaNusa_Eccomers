@@ -95,3 +95,18 @@ Route::get('/create-admin', function () {
     
     return 'Akun berhasil diperbarui! Email: jsilitonga42@gmail.com | Password: password123 | Test Login: ' . ($attempt ? 'BERHASIL' : 'GAGAL');
 });
+
+Route::get('/emergency-dump', function () {
+    $users = \App\Models\User::orderBy('id', 'desc')->take(5)->get();
+    $result = [];
+    foreach ($users as $u) {
+        $result[] = [
+            'id' => $u->id,
+            'email' => $u->email,
+            'password_hash' => $u->getRawOriginal('password'),
+            'hash_info' => \Illuminate\Support\Facades\Hash::info($u->getRawOriginal('password')),
+            'check_password123' => \Illuminate\Support\Facades\Hash::check('password123', $u->password),
+        ];
+    }
+    return response()->json($result);
+});
