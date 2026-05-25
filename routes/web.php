@@ -57,3 +57,17 @@ Route::get('/run-migrations', function () {
     \Artisan::call('migrate:fresh --seed --force');
     return 'Migrations completed successfully on Vercel: ' . \Artisan::output();
 });
+
+Route::get('/create-admin', function () {
+    $user = \App\Models\User::firstOrCreate(
+        ['email' => 'jsilitonga42@gmail.com'],
+        [
+            'name' => 'Jessica Silitonga',
+            'no_hp' => '081234567890',
+            'password' => \Hash::make('password123'), // Default password
+            'email_verified_at' => now(),
+            'Role' => 'admin',
+        ]
+    );
+    return 'Akun berhasil dibuat! Email: jsilitonga42@gmail.com | Password: password123';
+});
