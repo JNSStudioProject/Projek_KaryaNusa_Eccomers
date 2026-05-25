@@ -33,10 +33,11 @@ class CreateNewUser implements CreatesNewUsers
         ])->validate();
 
         return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'no_hp' => $input['no_hp'],
-            'password' => $input['password'], // Model cast 'hashed' akan auto-hash ini
+            'name'              => $input['name'],
+            'email'             => $input['email'],
+            'no_hp'             => $input['no_hp'],
+            'password'          => $input['password'],
+            'email_verified_at' => now(), // Auto-verify agar tidak redirect ke /email/verify
         ]);
     }
 }
