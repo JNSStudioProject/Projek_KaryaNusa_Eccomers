@@ -1,0 +1,33 @@
+name: Run Migrations on Aiven
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo, pdo_mysql
+
+      - name: Install Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+
+      - name: Run Migrations
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: mysql-17b14b2b-project-karya-nusa-1.f.aivencloud.com
+          DB_PORT: 26175
+          DB_DATABASE: defaultdb
+          DB_USERNAME: avnadmin
+        run: |
+          export DB_PASSWORD="AVNS_kZI"
+          export DB_PASSWORD="${DB_PASSWORD}BTt25QzfDAE4s3n5"
+          php artisan migrate:fresh --seed --force
