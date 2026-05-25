@@ -59,15 +59,15 @@ Route::get('/run-migrations', function () {
 });
 
 Route::get('/create-admin', function () {
-    $user = \App\Models\User::firstOrCreate(
+    $user = \App\Models\User::updateOrCreate(
         ['email' => 'jsilitonga42@gmail.com'],
         [
             'name' => 'Jessica Silitonga',
             'no_hp' => '081234567890',
-            'password' => \Hash::make('password123'), // Default password
+            'password' => \Hash::make('password123'),
             'email_verified_at' => now(),
             'Role' => 'admin',
         ]
     );
-    return 'Akun berhasil dibuat! Email: jsilitonga42@gmail.com | Password: password123';
+    return 'Akun berhasil diperbarui! Email: jsilitonga42@gmail.com | Password: password123';
 });
