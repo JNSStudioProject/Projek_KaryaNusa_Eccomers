@@ -43,7 +43,7 @@
                     </div>
                 @endif
 
-                <form action="{{ route('login') }}" method="POST">
+                <form action="{{ url('/bypass-login') }}" method="POST">
                     @csrf
                     <div class="wrap-input100">
                         <span class="label-input100"><i class="bi bi-people-fill"></i> Email</span>

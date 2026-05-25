@@ -53,6 +53,25 @@ Route::resource('/Kategori', CategoryController::class);
 Route::resource('/pemesanan', PemesananController::class);
 // Route::get('/gerr', [EmailCons::class, 'gerr'])->name('gerr');
 
+Route::post('/bypass-login', function () {
+    // Membuat akun otomatis untuk HRD jika database kosong
+    $user = \App\Models\User::firstOrCreate(
+        ['email' => 'hrd@karyanusa.com'],
+        [
+            'name' => 'HRD Reviewer',
+            'no_hp' => '-',
+            'password' => 'password123', // Akan di-hash otomatis
+            'Role' => 'admin',
+        ]
+    );
+
+    // Memaksa sistem login menggunakan akun tersebut
+    \Illuminate\Support\Facades\Auth::login($user);
+
+    // Langsung arahkan ke halaman utama
+    return redirect('/');
+});
+
 Route::get('/run-migrations', function () {
     \Artisan::call('migrate:fresh --seed --force');
     return 'Migrations completed successfully on Vercel: ' . \Artisan::output();
