@@ -172,7 +172,7 @@
                         <div class="product-img-wrap" style="position: relative; overflow: hidden; background: #f8f8f8; height: 220px;">
                             @if($image)
                             <img
-                                src="{{ asset('storage/' . $image->image_path) }}"
+                                src="{{ asset($image->image_path) }}"
                                 alt="{{ $p->nama }}"
                                 style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;"
                                 class="product-img"

@@ -12,4 +12,13 @@ class ImageProduk extends Model
     {
         return $this->belongsTo(Produk::class, 'product_id');
     }
+
+    public function getImagePathAttribute($value)
+    {
+        if (\Illuminate\Support\Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+        
+        return 'storage/' . $value;
+    }
 }
