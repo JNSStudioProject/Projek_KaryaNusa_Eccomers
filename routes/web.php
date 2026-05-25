@@ -103,10 +103,12 @@ Route::get('/emergency-dump', function () {
         $result[] = [
             'id' => $u->id,
             'email' => $u->email,
-            'password_hash' => $u->getRawOriginal('password'),
-            'hash_info' => \Illuminate\Support\Facades\Hash::info($u->getRawOriginal('password')),
-            'check_password123' => \Illuminate\Support\Facades\Hash::check('password123', $u->password),
         ];
     }
-    return response()->json($result);
+    return response()->json([
+        'db_connection' => env('DB_CONNECTION'),
+        'db_database' => env('DB_DATABASE'),
+        'users_count' => count($result),
+        'users' => $result,
+    ]);
 });
