@@ -61,7 +61,7 @@ class PaymentController extends Controller
             'tgl' => $order->updated_at,
         ];
 
-        $email_target = "jessicanathania72@gmail.com";
+        $email_target = Auth::user()->email;
         Mail::to($email_target)->send(new EmailAfterCO($data));
         $order = Pemesanan::find($pemesanan_id->id);
 
@@ -76,7 +76,7 @@ class PaymentController extends Controller
                 $item->delete();
             }
         }
-        return view('thankYou');
+        return view('thankYou', compact('order'));
     }
     public function processOrderUpdate(Request $request)
     {

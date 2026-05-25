@@ -26,6 +26,12 @@ class PemesananController extends Controller
     {
         return view('aboutUs');
     }
+    public function pesananSaya()
+    {
+        $pemesanan = Pemesanan::where('user_id', Auth::id())->latest()->get();
+        return view('pesananSaya', compact('pemesanan'));
+    }
+
     public function ViewCheckout(Request $request)
     {
         $selectedItems = $request->query('selectedID');
@@ -411,6 +417,7 @@ class PemesananController extends Controller
     public function  cart()
     {
         $cart = Cart::with('produk.images') // Eager loading untuk relasi produk dan gambar
+            ->where('user_id', Auth::id())
             ->get(); // Mengambil semua data  keranjang
 
         return view('cart', compact('cart'));

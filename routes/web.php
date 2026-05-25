@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::post('/save-address', [PemesananController::class, 'saveAddress'])->name('save-address');
+    Route::get('/pesanan-saya', [PemesananController::class, 'pesananSaya'])->name('pesanan.saya');
 });
 
 

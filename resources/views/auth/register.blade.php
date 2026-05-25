@@ -83,7 +83,7 @@
                         <button type="submit" class="submit-btn" style="margin-top: 20px;">Sign Up</button>
                         
                         <div class="text-center mt-3">
-                            <a href="{{ route('login') }}" style="color: white; text-decoration: none;">Already have an account? Log in</a>
+                            <a href="{{ route('login') }}" style="color: black; text-decoration: underline;">Already have an account? Log in</a>
                         </div>
                     </form>
                 </div>
