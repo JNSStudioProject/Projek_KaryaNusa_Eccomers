@@ -1,0 +1,45 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/index.php",
+            "use": "vercel-php@0.6.0"
+        },
+        {
+            "src": "/public/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/build/(.*)",
+            "dest": "/public/build/$1"
+        },
+        {
+            "src": "/asset/(.*)",
+            "dest": "/public/asset/$1"
+        },
+        {
+            "src": "/furni-1.0.0/(.*)",
+            "dest": "/public/furni-1.0.0/$1"
+        },
+        {
+            "src": "/image/(.*)",
+            "dest": "/public/image/$1"
+        },
+        {
+            "src": "/storage/(.*)",
+            "dest": "/public/storage/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/api/index.php"
+        }
+    ],
+    "env": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "APP_URL": "https://your-vercel-domain.vercel.app",
+        "ASSET_URL": "https://your-vercel-domain.vercel.app"
+    }
+}

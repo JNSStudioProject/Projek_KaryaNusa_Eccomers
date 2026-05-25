@@ -1,0 +1,14 @@
+/vendor
+/node_modules
+/.git
+/.idea
+/.vscode
+/.phpunit.cache
+/storage/framework/cache
+/storage/framework/views
+/storage/framework/sessions
+.env
+.env.example
+*.log
+docker-compose.yml
+phpunit.xml
