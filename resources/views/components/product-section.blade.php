@@ -22,7 +22,7 @@
                 <div class="col-12 col-md-4 col-lg-3 mb-5 mb-md-0">
                     <a class="product-item" href="{{ route('Produk.index') }}">
                         @if ($carts->images->isNotEmpty())
-                            <img src="{{ asset($carts->images->first()->image_path) }}" alt="IMG-PRODUCT"
+                            <img src="{{ $carts->images->first()->image_path }}" alt="IMG-PRODUCT"
                                 class="img-fluid" height="300px" width="200px">
                         @else
                             <img src="{{ asset('path/to/default-image.jpg') }}" alt="Default Image" class="img-fluid">

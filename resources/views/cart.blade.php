@@ -35,7 +35,7 @@
                                 @endphp
 
                                 <td class="product-thumbnail">
-                                    <img src="{{ asset($image->image_path) }}" alt="IMG-PRODUCT"
+                                    <img src="{{ $image->image_path }}" alt="IMG-PRODUCT"
                                         class="img-fluid">
                                 </td>
                                 <td class="product-name">

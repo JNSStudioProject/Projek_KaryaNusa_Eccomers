@@ -9,7 +9,7 @@
                 @endphp
 
                 @if ($image)
-                    <img src="{{ asset($image->image_path) }}" alt="IMG-PRODUCT" width="60px" height="300px">
+                    <img src="{{ $image->image_path }}" alt="IMG-PRODUCT" width="60px" height="300px">
                 @endif
 
                 <a href=""
